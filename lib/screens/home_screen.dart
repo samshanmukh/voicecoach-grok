@@ -100,7 +100,7 @@ class HomeScreen extends StatelessWidget {
                   'by Grok',
                   style: TextStyle(
                     fontSize: 14,
-                    opacity: 0.8,
+                    color: Colors.white.withOpacity(0.8),
                   ),
                 ),
               ],
