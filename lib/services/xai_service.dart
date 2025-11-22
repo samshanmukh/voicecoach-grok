@@ -44,8 +44,9 @@ Be direct, savage when needed, but always prioritize safety. Return your analysi
               'content': prompt,
             }
           ],
-          // Updated to grok-3 (grok-beta was deprecated on 2025-09-15)
-          'model': 'grok-3',
+          // Using grok-4-1-fast-non-reasoning: faster, cheaper (15-30x), higher rate limits
+          // Previous grok-beta was deprecated on 2025-09-15
+          'model': 'grok-4-1-fast-non-reasoning',
           'stream': false,
           'temperature': 0.7,
         }),
