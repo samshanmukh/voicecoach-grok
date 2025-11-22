@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'providers/workout_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_navigation.dart';
 
 void main() {
   runApp(const VoiceCoachApp());
@@ -21,11 +21,12 @@ class VoiceCoachApp extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple,
+            seedColor: const Color(0xFF4CAF50), // Primary Green
             brightness: Brightness.dark,
           ).copyWith(
-            primary: const Color(0xFF9C27B0),
-            secondary: const Color(0xFF7B1FA2),
+            primary: const Color(0xFF4CAF50),      // Green for buttons
+            secondary: const Color(0xFF2196F3),    // Blue for chat
+            tertiary: const Color(0xFFFF9800),     // Orange for accents
             surface: const Color(0xFF1E1E1E),
             background: const Color(0xFF121212),
           ),
@@ -41,20 +42,30 @@ class VoiceCoachApp extends StatelessWidget {
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
               elevation: 0,
+              backgroundColor: const Color(0xFF4CAF50), // Green buttons
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
-          floatingActionButtonTheme: FloatingActionButtonThemeData(
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
             elevation: 8,
+            backgroundColor: Color(0xFF4CAF50), // Green FAB
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.all(Radius.circular(16)),
             ),
           ),
+          bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+            backgroundColor: Color(0xFF1E1E1E),
+            selectedItemColor: Color(0xFF4CAF50),
+            unselectedItemColor: Colors.grey,
+            type: BottomNavigationBarType.fixed,
+            elevation: 8,
+          ),
         ),
-        home: const HomeScreen(),
+        home: const MainNavigation(),
       ),
     );
   }
