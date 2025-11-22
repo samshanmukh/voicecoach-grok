@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'providers/workout_provider.dart';
+import 'providers/chat_provider.dart';
 import 'screens/main_navigation.dart';
 
 void main() {
@@ -13,8 +14,11 @@ class VoiceCoachApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => WorkoutProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => WorkoutProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+      ],
       child: MaterialApp(
         title: 'VoiceCoach by Grok',
         debugShowCheckedModeBanner: false,

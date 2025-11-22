@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'chat_screen.dart';
+import 'chat_screen_v2.dart';
 import 'workouts_screen.dart';
 import 'leaderboard_screen.dart';
 import 'voice_vitality_screen.dart';
@@ -15,7 +15,7 @@ class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = const [
-    ChatScreen(),
+    ChatScreenV2(), // Now with REAL Grok API!
     WorkoutsScreen(),
     LeaderboardScreen(),
     VoiceVitalityScreen(),
