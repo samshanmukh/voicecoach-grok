@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
@@ -14,8 +15,27 @@ class AudioService {
 
   /// Request microphone permission
   Future<bool> requestPermission() async {
-    final status = await Permission.microphone.request();
-    return status.isGranted;
+    // Skip permission_handler on desktop platforms (macOS, Windows, Linux)
+    // These platforms use entitlements/manifests instead
+    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux)) {
+      // Desktop platforms: permissions are handled via entitlements/manifests
+      return true;
+    }
+
+    // For mobile platforms (iOS, Android), use permission_handler
+    try {
+      final status = await Permission.microphone.request();
+      return status.isGranted;
+    } catch (e) {
+      // If permission request fails, log and assume granted
+      // (entitlements might already be in place)
+      if (kDebugMode) {
+        print('Permission request failed: $e');
+      }
+      return true;
+    }
   }
 
   /// Start continuous voice recording with periodic analysis
@@ -50,35 +70,93 @@ class AudioService {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final path = '${tempDir.path}/voice_segment_$timestamp.m4a';
 
+      if (kDebugMode) {
+        print('Attempting to record segment to: $path');
+      }
+
       // Start recording
-      if (await _recorder.hasPermission()) {
-        await _recorder.start(
-          const RecordConfig(
-            encoder: AudioEncoder.aacLc,
-            bitRate: 128000,
-            sampleRate: 44100,
-          ),
-          path: path,
-        );
+      final hasPermission = await _recorder.hasPermission();
+      if (kDebugMode) {
+        print('Recorder hasPermission: $hasPermission');
+      }
 
-        // Record for a short duration (e.g., 3 seconds for analysis)
-        await Future.delayed(const Duration(seconds: 3));
+      if (hasPermission) {
+        try {
+          if (kDebugMode) {
+            print('Starting recorder...');
+          }
 
-        // Stop and get the file
-        final recordedPath = await _recorder.stop();
+          await _recorder.start(
+            const RecordConfig(
+              encoder: AudioEncoder.aacLc,
+              bitRate: 128000,
+              sampleRate: 44100,
+            ),
+            path: path,
+          );
 
-        if (recordedPath != null) {
-          final file = File(recordedPath);
-          final metadata = await _analyzeAudioFile(file);
+          if (kDebugMode) {
+            print('Recorder started successfully');
+          }
 
-          onAudioSegment({
-            'path': recordedPath,
-            ...metadata,
-          });
+          // Record for a short duration (e.g., 3 seconds for analysis)
+          await Future.delayed(const Duration(seconds: 3));
+
+          // Stop and get the file
+          if (kDebugMode) {
+            print('Stopping recorder...');
+          }
+
+          String? recordedPath;
+          try {
+            recordedPath = await _recorder.stop();
+            if (kDebugMode) {
+              print('Recorder stopped, path: $recordedPath');
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print('Error stopping recorder: $e');
+            }
+            // On macOS, the stop() might fail but recording still works
+            // Try to pause instead
+            try {
+              await _recorder.pause();
+              if (kDebugMode) {
+                print('Recorder paused instead of stopped');
+              }
+            } catch (pauseError) {
+              if (kDebugMode) {
+                print('Pause also failed: $pauseError');
+              }
+            }
+          }
+
+          if (recordedPath != null) {
+            final file = File(recordedPath);
+            final metadata = await _analyzeAudioFile(file);
+
+            onAudioSegment({
+              'path': recordedPath,
+              ...metadata,
+            });
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Error during recording: $e');
+            print('Stack trace: ${StackTrace.current}');
+          }
+          rethrow;
+        }
+      } else {
+        if (kDebugMode) {
+          print('Recorder does not have permission');
         }
       }
     } catch (e) {
       print('Error recording segment: $e');
+      if (kDebugMode) {
+        print('Stack trace: ${StackTrace.current}');
+      }
     }
   }
 
