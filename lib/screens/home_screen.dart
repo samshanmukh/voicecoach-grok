@@ -85,11 +85,11 @@ class HomeScreen extends StatelessWidget {
         children: [
           const Icon(Icons.fitness_center, size: 32),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'VoiceCoach',
                   style: TextStyle(
                     fontSize: 24,
