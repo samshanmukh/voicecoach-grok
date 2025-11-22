@@ -100,8 +100,8 @@ class WorkoutSession {
     required this.id,
     required this.startTime,
     this.endTime,
-    this.responses = const [],
-  });
+    List<CoachingResponse>? responses,
+  }) : responses = responses ?? [];
 
   Duration get duration {
     final end = endTime ?? DateTime.now();
