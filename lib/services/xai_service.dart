@@ -44,7 +44,8 @@ Be direct, savage when needed, but always prioritize safety. Return your analysi
               'content': prompt,
             }
           ],
-          'model': 'grok-beta',
+          // Updated to grok-3 (grok-beta was deprecated on 2025-09-15)
+          'model': 'grok-3',
           'stream': false,
           'temperature': 0.7,
         }),
