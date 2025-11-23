@@ -51,7 +51,7 @@ class VoiceCoachApp extends StatelessWidget {
             onSurface: Colors.white,
           ),
           scaffoldBackgroundColor: const Color(0xFF0F0F0F),
-          cardTheme: CardTheme(
+          cardTheme: CardThemeData(
             color: const Color(0xFF2A2A2A),
             elevation: 0,
             shape: RoundedRectangleBorder(
