@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/gamification_models.dart';
 
 /// Celebration widget for unlocked achievements
@@ -175,30 +176,58 @@ class _AchievementCelebrationState extends State<AchievementCelebration> {
 
                   const SizedBox(height: 24),
 
-                  // Button
-                  ElevatedButton(
-                    onPressed: _next,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF4CAF50),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 48,
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: Text(
-                      _currentIndex < widget.achievements.length - 1
-                          ? 'Next'
-                          : 'Awesome!',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ).animate().fadeIn(delay: 1000.ms).scale(),
+                  // Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Share button
+                      IconButton(
+                        onPressed: () {
+                          final achievement = widget.achievements[_currentIndex];
+                          final shareText = '''
+🏆 Achievement Unlocked! 🎉
+
+${achievement.name}
+${achievement.description}
+
+Powered by VoiceCoach by Grok 💪
+#Achievement #FitnessGoals #VoiceCoach
+''';
+                          Share.share(shareText);
+                        },
+                        icon: const Icon(Icons.share, color: Colors.white),
+                        iconSize: 28,
+                        tooltip: 'Share',
+                      ).animate().fadeIn(delay: 1000.ms).scale(),
+
+                      const SizedBox(width: 16),
+
+                      // Next/Awesome button
+                      ElevatedButton(
+                        onPressed: _next,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF4CAF50),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 48,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: Text(
+                          _currentIndex < widget.achievements.length - 1
+                              ? 'Next'
+                              : 'Awesome!',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ).animate().fadeIn(delay: 1000.ms).scale(),
+                    ],
+                  ),
                 ],
               ),
             ),

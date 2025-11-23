@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/leaderboard_provider.dart';
 import '../models/leaderboard_models.dart';
 import '../widgets/glass_card.dart';
+import 'settings_screen.dart';
 
 /// Leaderboard Tab: Global rankings by streak length with Firebase
 class LeaderboardScreen extends StatefulWidget {
@@ -106,6 +108,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     : () => provider.refresh(),
                 tooltip: 'Refresh',
               ),
+              // Settings
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                },
+                tooltip: 'Settings',
+              ),
             ],
           ),
           body: provider.isLoading && provider.leaderboard.isEmpty
@@ -176,8 +191,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         child: Column(
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                const Spacer(),
                 const Icon(Icons.emoji_events, color: Color(0xFFFF9800)),
                 const SizedBox(width: 8),
                 const Text(
@@ -186,6 +202,27 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
+                ),
+                const Spacer(),
+                // Share button
+                IconButton(
+                  onPressed: () {
+                    final shareText = '''
+🏆 My VoiceCoach Stats 🔥
+
+Global Rank: #${provider.userRank}
+Streak: ${userProfile.streak} days 🔥
+Total Workouts: ${userProfile.totalWorkouts}
+Total Exercises: ${userProfile.totalExercises}
+
+Powered by VoiceCoach by Grok 💪
+#FitnessGoals #VoiceCoach
+''';
+                    Share.share(shareText);
+                  },
+                  icon: const Icon(Icons.share, size: 20),
+                  iconSize: 20,
+                  tooltip: 'Share stats',
                 ),
               ],
             ),

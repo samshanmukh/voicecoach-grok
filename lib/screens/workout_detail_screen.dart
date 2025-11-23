@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/workout_provider.dart';
 import '../providers/leaderboard_provider.dart';
 import '../providers/gamification_provider.dart';
@@ -602,6 +603,24 @@ class WorkoutDetailScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          TextButton.icon(
+            onPressed: () {
+              final session = workoutProvider.activeSession!;
+              final shareText = '''
+🏋️ Workout Complete! 💪
+
+Workout: ${session.routine.name}
+Duration: ${session.duration.inMinutes} minutes
+Exercises: ${session.completedExercises}/${session.totalExercises}
+
+Powered by VoiceCoach by Grok 🚀
+#VoiceCoach #FitnessGoals #WorkoutComplete
+''';
+              Share.share(shareText);
+            },
+            icon: const Icon(Icons.share),
+            label: const Text('Share'),
+          ),
           ElevatedButton(
             onPressed: () async {
               // Get providers
