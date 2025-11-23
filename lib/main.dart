@@ -41,17 +41,17 @@ class VoiceCoachApp extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF4CAF50), // Primary Green
+            seedColor: const Color(0xFFFF6B35), // Vibrant Orange
             brightness: Brightness.dark,
           ).copyWith(
-            primary: const Color(0xFF4CAF50),      // Green for buttons
-            secondary: const Color(0xFF2196F3),    // Blue for chat
-            tertiary: const Color(0xFFFF9800),     // Orange for accents
-            surface: const Color(0xFF1E1E1E),
-            background: const Color(0xFF121212),
+            primary: const Color(0xFFFF6B35),      // Vibrant Orange
+            secondary: const Color(0xFF00D4FF),    // Electric Blue
+            tertiary: const Color(0xFFFFC145),     // Golden Yellow
+            surface: const Color(0xFF1A1A2E),      // Deep Navy
+            background: const Color(0xFF0F0F1E),   // Near Black
           ),
-          textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-          scaffoldBackgroundColor: const Color(0xFF121212),
+          textTheme: GoogleFonts.montserratTextTheme(ThemeData.dark().textTheme),
+          scaffoldBackgroundColor: const Color(0xFF0F0F1E),
           cardTheme: CardThemeData(
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -61,28 +61,29 @@ class VoiceCoachApp extends StatelessWidget {
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              elevation: 0,
-              backgroundColor: const Color(0xFF4CAF50), // Green buttons
+              elevation: 4,
+              backgroundColor: const Color(0xFFFF6B35), // Vibrant Orange
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
+              shadowColor: const Color(0xFFFF6B35).withOpacity(0.5),
             ),
           ),
           floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            elevation: 8,
-            backgroundColor: Color(0xFF4CAF50), // Green FAB
+            elevation: 12,
+            backgroundColor: Color(0xFFFF6B35), // Vibrant Orange FAB
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(16)),
+              borderRadius: BorderRadius.all(Radius.circular(20)),
             ),
           ),
           bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-            backgroundColor: Color(0xFF1E1E1E),
-            selectedItemColor: Color(0xFF4CAF50),
+            backgroundColor: Color(0xFF1A1A2E),
+            selectedItemColor: Color(0xFFFF6B35),
             unselectedItemColor: Colors.grey,
             type: BottomNavigationBarType.fixed,
-            elevation: 8,
+            elevation: 16,
           ),
         ),
         home: const MainNavigation(),
