@@ -15,8 +15,9 @@ dependencies:
   google_fonts: ^6.1.0
   flutter_animate: ^4.5.0
 
-  # Audio Recording
+  # Audio Recording & Speech
   record: ^6.1.2
+  speech_to_text: ^7.0.0
   permission_handler: ^11.1.0
   path_provider: ^2.1.1
 

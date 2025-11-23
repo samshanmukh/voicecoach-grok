@@ -11,8 +11,14 @@ import 'screens/main_navigation.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase
-  await Firebase.initializeApp();
+  // Initialize Firebase (optional - app works without it)
+  try {
+    await Firebase.initializeApp();
+    print('✅ Firebase initialized successfully');
+  } catch (e) {
+    print('⚠️ Firebase not configured - app will work without leaderboard features');
+    print('Error: $e');
+  }
 
   runApp(const VoiceCoachApp());
 }
@@ -35,17 +41,16 @@ class VoiceCoachApp extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF4CAF50), // Primary Green
-            brightness: Brightness.dark,
+            seedColor: const Color(0xFF6366F1), // Indigo
+            brightness: Brightness.light,
           ).copyWith(
-            primary: const Color(0xFF4CAF50),      // Green for buttons
-            secondary: const Color(0xFF2196F3),    // Blue for chat
-            tertiary: const Color(0xFFFF9800),     // Orange for accents
-            surface: const Color(0xFF1E1E1E),
-            background: const Color(0xFF121212),
+            primary: const Color(0xFF6366F1),      // Indigo
+            secondary: const Color(0xFF10B981),    // Emerald Green
+            surface: Colors.white,
+            background: const Color(0xFFF9FAFB),   // Light gray
           ),
-          textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-          scaffoldBackgroundColor: const Color(0xFF121212),
+          textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
+          scaffoldBackgroundColor: const Color(0xFFF9FAFB),
           cardTheme: CardThemeData(
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -56,7 +61,7 @@ class VoiceCoachApp extends StatelessWidget {
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
               elevation: 0,
-              backgroundColor: const Color(0xFF4CAF50), // Green buttons
+              backgroundColor: const Color(0xFF6366F1), // Indigo
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               shape: RoundedRectangleBorder(
@@ -65,16 +70,16 @@ class VoiceCoachApp extends StatelessWidget {
             ),
           ),
           floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            elevation: 8,
-            backgroundColor: Color(0xFF4CAF50), // Green FAB
+            elevation: 2,
+            backgroundColor: Color(0xFF6366F1), // Indigo FAB
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.all(Radius.circular(16)),
             ),
           ),
           bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-            backgroundColor: Color(0xFF1E1E1E),
-            selectedItemColor: Color(0xFF4CAF50),
-            unselectedItemColor: Colors.grey,
+            backgroundColor: Colors.white,
+            selectedItemColor: Color(0xFF6366F1),
+            unselectedItemColor: Color(0xFF9CA3AF),
             type: BottomNavigationBarType.fixed,
             elevation: 8,
           ),

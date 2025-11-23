@@ -5,6 +5,7 @@ import '../models/workout_models.dart';
 import '../providers/workout_provider.dart';
 import '../providers/gamification_provider.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/sports_background.dart';
 import 'workout_detail_screen.dart';
 import 'achievements_screen.dart';
 
@@ -76,12 +77,22 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
               ),
             ],
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Stats Card
+          body: SportsBackground(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Hero Header
+                  SportsHeroHeader(
+                    title: 'WORKOUTS',
+                    subtitle: 'Push your limits 💪',
+                    icon: Icons.fitness_center,
+                    accentColor: const Color(0xFF6366F1),
+                  ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.3),
+                  const SizedBox(height: 24),
+
+                  // Stats Card
                 _buildStatsCard(stats),
                 const SizedBox(height: 24),
 
@@ -112,7 +123,8 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                     workoutProvider,
                   );
                 }).toList(),
-              ],
+                ],
+              ),
             ),
           ),
         );
