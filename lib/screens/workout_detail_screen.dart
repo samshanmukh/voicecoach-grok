@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import '../providers/workout_provider.dart';
 import '../providers/leaderboard_provider.dart';
+import '../providers/gamification_provider.dart';
 import '../models/workout_models.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/achievement_celebration.dart';
 
 /// Workout Detail Screen: Active workout with timer and tracking
 class WorkoutDetailScreen extends StatelessWidget {
@@ -602,13 +604,25 @@ class WorkoutDetailScreen extends StatelessWidget {
         actions: [
           ElevatedButton(
             onPressed: () async {
-              // Record to leaderboard
+              // Get providers
               final leaderboardProvider = context.read<LeaderboardProvider>();
+              final gamificationProvider = context.read<GamificationProvider>();
               final completedExercises =
                   workoutProvider.activeSession?.completedExercises ?? 0;
 
+              // Record to leaderboard
               await leaderboardProvider.recordWorkout(
                 exercisesCompleted: completedExercises,
+              );
+
+              // Check for achievements
+              final stats = workoutProvider.getStats();
+              final userProfile = leaderboardProvider.userProfile;
+              final newAchievements = await gamificationProvider.checkAchievements(
+                totalWorkouts: stats['totalWorkouts'] as int,
+                totalExercises: stats['totalExercises'] as int,
+                currentStreak: userProfile?.streak ?? 0,
+                leaderboardRank: leaderboardProvider.userRank,
               );
 
               // Complete workout
@@ -618,13 +632,34 @@ class WorkoutDetailScreen extends StatelessWidget {
                 Navigator.pop(context); // Close dialog
                 Navigator.pop(context); // Go back to workouts screen
 
+                // Show achievement celebration if any unlocked
+                if (newAchievements.isNotEmpty) {
+                  await showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => AchievementCelebration(
+                      achievements: newAchievements,
+                      onDismiss: () {
+                        gamificationProvider.clearRecentlyUnlocked();
+                        Navigator.pop(context);
+                      },
+                    ),
+                  );
+                }
+
                 // Show success message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Workout recorded to leaderboard!'),
-                    backgroundColor: Color(0xFF4CAF50),
-                  ),
-                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        newAchievements.isNotEmpty
+                            ? 'Workout complete! ${newAchievements.length} achievement(s) unlocked!'
+                            : 'Workout recorded to leaderboard!',
+                      ),
+                      backgroundColor: const Color(0xFF4CAF50),
+                    ),
+                  );
+                }
               }
             },
             child: const Text('Finish'),

@@ -3,8 +3,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../models/workout_models.dart';
 import '../providers/workout_provider.dart';
+import '../providers/gamification_provider.dart';
 import '../widgets/glass_card.dart';
 import 'workout_detail_screen.dart';
+import 'achievements_screen.dart';
 
 /// Workouts Tab: Browse and start workout routines
 class WorkoutsScreen extends StatefulWidget {
@@ -25,6 +27,46 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
           appBar: AppBar(
             title: const Text('Workouts'),
             actions: [
+              // Achievements button
+              Consumer<GamificationProvider>(
+                builder: (context, gamification, child) {
+                  return IconButton(
+                    icon: Stack(
+                      children: [
+                        const Icon(Icons.emoji_events),
+                        if (gamification.recentlyUnlocked.isNotEmpty)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '${gamification.recentlyUnlocked.length}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AchievementsScreen(),
+                        ),
+                      );
+                    },
+                    tooltip: 'Achievements',
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.history),
                 onPressed: () {

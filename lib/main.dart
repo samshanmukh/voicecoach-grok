@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'providers/workout_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/leaderboard_provider.dart';
+import 'providers/gamification_provider.dart';
 import 'screens/main_navigation.dart';
 
 void main() async {
@@ -26,6 +27,7 @@ class VoiceCoachApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => WorkoutProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => LeaderboardProvider()),
+        ChangeNotifierProvider(create: (_) => GamificationProvider()),
       ],
       child: MaterialApp(
         title: 'VoiceCoach by Grok',
