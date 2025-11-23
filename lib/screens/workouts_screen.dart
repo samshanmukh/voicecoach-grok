@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
+import '../models/workout_models.dart';
+import '../providers/workout_provider.dart';
 import '../widgets/glass_card.dart';
+import 'workout_detail_screen.dart';
 
-/// Workouts Tab: Scrollable list of routines
-/// Tap to start timer, log reps, sets
-/// Progress ring fills up
+/// Workouts Tab: Browse and start workout routines
 class WorkoutsScreen extends StatefulWidget {
   const WorkoutsScreen({super.key});
 
@@ -13,79 +15,238 @@ class WorkoutsScreen extends StatefulWidget {
 }
 
 class _WorkoutsScreenState extends State<WorkoutsScreen> {
-  final List<WorkoutRoutine> _routines = [
-    WorkoutRoutine(
-      name: 'Arm Day',
-      exercises: ['Bicep Curls', 'Tricep Dips', 'Hammer Curls'],
-      duration: 45,
-      difficulty: 'Intermediate',
-      icon: Icons.fitness_center,
-    ),
-    WorkoutRoutine(
-      name: 'Leg Day',
-      exercises: ['Squats', 'Lunges', 'Leg Press'],
-      duration: 60,
-      difficulty: 'Advanced',
-      icon: Icons.directions_run,
-    ),
-    WorkoutRoutine(
-      name: 'Core Blast',
-      exercises: ['Planks', 'Crunches', 'Russian Twists'],
-      duration: 30,
-      difficulty: 'Beginner',
-      icon: Icons.accessibility_new,
-    ),
-    WorkoutRoutine(
-      name: 'Cardio',
-      exercises: ['Running', 'Burpees', 'Jump Rope'],
-      duration: 40,
-      difficulty: 'Intermediate',
-      icon: Icons.favorite,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Workouts'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            onPressed: () {
-              // TODO: Phase 3 - Add custom workout
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Custom workouts coming in Phase 3!'),
-                ),
-              );
-            },
-            tooltip: 'Add workout',
+    return Consumer<WorkoutProvider>(
+      builder: (context, workoutProvider, child) {
+        final stats = workoutProvider.getStats();
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Workouts'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.history),
+                onPressed: () {
+                  _showWorkoutHistory(context, workoutProvider);
+                },
+                tooltip: 'Workout history',
+              ),
+            ],
           ),
-        ],
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _routines.length,
-        itemBuilder: (context, index) {
-          return _buildWorkoutCard(_routines[index], index);
-        },
-      ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Stats Card
+                _buildStatsCard(stats),
+                const SizedBox(height: 24),
+
+                // Resume Active Workout
+                if (workoutProvider.hasActiveSession) ...[
+                  _buildResumeCard(context, workoutProvider),
+                  const SizedBox(height: 24),
+                ],
+
+                // Section Header
+                const Text(
+                  'Workout Templates',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Workout Cards
+                ...WorkoutTemplates.templates.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final routine = entry.value;
+                  return _buildWorkoutCard(
+                    context,
+                    routine,
+                    index,
+                    workoutProvider,
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildWorkoutCard(WorkoutRoutine routine, int index) {
+  Widget _buildStatsCard(Map<String, dynamic> stats) {
+    return GlassCard(
+      gradientColors: [
+        const Color(0xFF4CAF50).withOpacity(0.15),
+        const Color(0xFF4CAF50).withOpacity(0.05),
+      ],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatItem(
+            Icons.fitness_center,
+            stats['totalWorkouts'].toString(),
+            'Workouts',
+          ),
+          Container(
+            height: 40,
+            width: 1,
+            color: Colors.white.withOpacity(0.2),
+          ),
+          _buildStatItem(
+            Icons.check_circle,
+            stats['totalExercises'].toString(),
+            'Exercises',
+          ),
+          Container(
+            height: 40,
+            width: 1,
+            color: Colors.white.withOpacity(0.2),
+          ),
+          _buildStatItem(
+            Icons.timer,
+            '${stats['totalDuration'].inMinutes}m',
+            'Total Time',
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2);
+  }
+
+  Widget _buildStatItem(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: const Color(0xFF4CAF50), size: 24),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade400,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResumeCard(
+    BuildContext context,
+    WorkoutProvider workoutProvider,
+  ) {
+    final session = workoutProvider.activeSession!;
+
+    return GlassCard(
+      gradientColors: [
+        const Color(0xFF2196F3).withOpacity(0.2),
+        const Color(0xFF2196F3).withOpacity(0.05),
+      ],
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => WorkoutDetailScreen(
+              routine: session.routine,
+            ),
+          ),
+        );
+      },
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2196F3).withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.play_circle_filled,
+              size: 40,
+              color: Color(0xFF2196F3),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Resume Workout',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF2196F3),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  session.routine.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${session.completedExercises}/${session.totalExercises} exercises • ${(session.progress * 100).toInt()}% complete',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.arrow_forward_ios,
+            size: 20,
+            color: Color(0xFF2196F3),
+          ),
+        ],
+      ),
+    ).animate().shake(duration: 500.ms);
+  }
+
+  Widget _buildWorkoutCard(
+    BuildContext context,
+    WorkoutRoutine routine,
+    int index,
+    WorkoutProvider workoutProvider,
+  ) {
     final difficultyColor = _getDifficultyColor(routine.difficulty);
+    final icon = _getWorkoutIcon(routine.name);
 
     return GlassCard(
       margin: const EdgeInsets.only(bottom: 16),
-      onTap: () {
-        // TODO: Phase 3 - Open workout detail and start timer
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Starting ${routine.name}... (Phase 3 feature)'),
-          ),
-        );
+      onTap: () async {
+        // Check if there's already an active workout
+        if (workoutProvider.hasActiveSession) {
+          final shouldSwitch = await _showSwitchWorkoutDialog(context);
+          if (shouldSwitch != true) return;
+
+          // Cancel current workout
+          await workoutProvider.cancelWorkout();
+        }
+
+        // Navigate to workout detail
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => WorkoutDetailScreen(routine: routine),
+            ),
+          );
+        }
       },
       child: Row(
         children: [
@@ -95,16 +256,16 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  const Color(0xFF4CAF50).withOpacity(0.3),
+                  const Color(0xFF4CAF50).withOpacity(0.1),
                 ],
               ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              routine.icon,
+              icon,
               size: 32,
-              color: Theme.of(context).colorScheme.primary,
+              color: const Color(0xFF4CAF50),
             ),
           ),
           const SizedBox(width: 16),
@@ -123,12 +284,25 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${routine.exercises.length} exercises • ${routine.duration} min',
+                  '${routine.exercises.length} exercises • ${routine.totalDuration} min',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey.shade400,
                   ),
                 ),
+                if (routine.description != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    routine.description!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -166,6 +340,19 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
     ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.2);
   }
 
+  IconData _getWorkoutIcon(String name) {
+    if (name.toLowerCase().contains('arm')) {
+      return Icons.fitness_center;
+    } else if (name.toLowerCase().contains('leg')) {
+      return Icons.directions_run;
+    } else if (name.toLowerCase().contains('core')) {
+      return Icons.accessibility_new;
+    } else if (name.toLowerCase().contains('cardio')) {
+      return Icons.favorite;
+    }
+    return Icons.fitness_center;
+  }
+
   Color _getDifficultyColor(String difficulty) {
     switch (difficulty.toLowerCase()) {
       case 'beginner':
@@ -178,20 +365,116 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
         return Colors.grey;
     }
   }
-}
 
-class WorkoutRoutine {
-  final String name;
-  final List<String> exercises;
-  final int duration;
-  final String difficulty;
-  final IconData icon;
+  Future<bool?> _showSwitchWorkoutDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Switch Workout?'),
+        content: const Text(
+          'You have a workout in progress. Do you want to switch to this workout? Your current progress will be lost.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+            ),
+            child: const Text('Switch'),
+          ),
+        ],
+      ),
+    );
+  }
 
-  WorkoutRoutine({
-    required this.name,
-    required this.exercises,
-    required this.duration,
-    required this.difficulty,
-    required this.icon,
-  });
+  void _showWorkoutHistory(BuildContext context, WorkoutProvider provider) {
+    final history = provider.getRecentSessions(limit: 20);
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Workout History',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (history.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: Text(
+                    'No workouts completed yet.\nStart your first workout!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  itemCount: history.length,
+                  itemBuilder: (context, index) {
+                    final session = history[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: const Color(0xFF4CAF50).withOpacity(0.2),
+                        child: const Icon(
+                          Icons.check_circle,
+                          color: Color(0xFF4CAF50),
+                        ),
+                      ),
+                      title: Text(session.routine.name),
+                      subtitle: Text(
+                        '${session.completedExercises} exercises • ${session.duration.inMinutes} min',
+                      ),
+                      trailing: Text(
+                        _formatDate(session.startTime),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      return 'Today';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return '${date.month}/${date.day}';
+    }
+  }
 }
