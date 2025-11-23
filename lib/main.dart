@@ -11,8 +11,14 @@ import 'screens/main_navigation.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase
-  await Firebase.initializeApp();
+  // Initialize Firebase (optional - app works without it)
+  try {
+    await Firebase.initializeApp();
+    print('✅ Firebase initialized successfully');
+  } catch (e) {
+    print('⚠️ Firebase not configured - app will work without leaderboard features');
+    print('Error: $e');
+  }
 
   runApp(const VoiceCoachApp());
 }
