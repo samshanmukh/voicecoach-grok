@@ -15,9 +15,9 @@ class SportsBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = customColors ?? [
-      const Color(0xFF0F0F1E),
-      const Color(0xFF1A1A2E),
-      const Color(0xFFFF6B35).withOpacity(0.1),
+      const Color(0xFFF9FAFB),
+      Colors.white,
+      const Color(0xFF6366F1).withOpacity(0.05),
     ];
 
     return Container(
@@ -37,7 +37,7 @@ class SportsBackground extends StatelessWidget {
             right: -100,
             child: _buildGeometricShape(
               200,
-              const Color(0xFFFF6B35).withOpacity(0.1),
+              const Color(0xFF6366F1).withOpacity(0.08),
             ),
           ),
           Positioned(
@@ -45,7 +45,7 @@ class SportsBackground extends StatelessWidget {
             left: -50,
             child: _buildGeometricShape(
               150,
-              const Color(0xFF00D4FF).withOpacity(0.1),
+              const Color(0xFF10B981).withOpacity(0.06),
             ),
           ),
           Positioned(
@@ -53,7 +53,7 @@ class SportsBackground extends StatelessWidget {
             left: 50,
             child: _buildGeometricShape(
               80,
-              const Color(0xFFFFC145).withOpacity(0.08),
+              const Color(0xFF6366F1).withOpacity(0.05),
             ),
           ),
 
@@ -210,24 +210,17 @@ class EnergyCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFF1A1A2E).withOpacity(0.9),
-                  const Color(0xFF1A1A2E).withOpacity(0.7),
-                ],
-              ),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: color.withOpacity(0.3),
+                color: color.withOpacity(0.2),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: color.withOpacity(0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),

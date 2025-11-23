@@ -88,7 +88,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                     title: 'WORKOUTS',
                     subtitle: 'Push your limits 💪',
                     icon: Icons.fitness_center,
-                    accentColor: const Color(0xFFFF6B35),
+                    accentColor: const Color(0xFF6366F1),
                   ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.3),
                   const SizedBox(height: 24),
 
