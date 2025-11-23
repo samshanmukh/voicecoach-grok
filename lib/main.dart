@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'providers/workout_provider.dart';
 import 'providers/chat_provider.dart';
+import 'providers/leaderboard_provider.dart';
 import 'screens/main_navigation.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp();
+
   runApp(const VoiceCoachApp());
 }
 
@@ -18,6 +25,7 @@ class VoiceCoachApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => WorkoutProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => LeaderboardProvider()),
       ],
       child: MaterialApp(
         title: 'VoiceCoach by Grok',

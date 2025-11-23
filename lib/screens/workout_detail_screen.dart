@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import '../providers/workout_provider.dart';
+import '../providers/leaderboard_provider.dart';
 import '../models/workout_models.dart';
 import '../widgets/glass_card.dart';
 
@@ -601,10 +602,29 @@ class WorkoutDetailScreen extends StatelessWidget {
         actions: [
           ElevatedButton(
             onPressed: () async {
+              // Record to leaderboard
+              final leaderboardProvider = context.read<LeaderboardProvider>();
+              final completedExercises =
+                  workoutProvider.activeSession?.completedExercises ?? 0;
+
+              await leaderboardProvider.recordWorkout(
+                exercisesCompleted: completedExercises,
+              );
+
+              // Complete workout
               await workoutProvider.completeWorkout();
+
               if (context.mounted) {
                 Navigator.pop(context); // Close dialog
                 Navigator.pop(context); // Go back to workouts screen
+
+                // Show success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Workout recorded to leaderboard!'),
+                    backgroundColor: Color(0xFF4CAF50),
+                  ),
+                );
               }
             },
             child: const Text('Finish'),
