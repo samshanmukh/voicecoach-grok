@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../providers/chat_provider.dart';
 import '../widgets/glass_card.dart';
 
@@ -17,6 +18,17 @@ class _ChatScreenV2State extends State<ChatScreenV2> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _apiKeyController = TextEditingController();
+
+  // Speech-to-text
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  String _voiceText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+  }
 
   @override
   void dispose() {
@@ -43,6 +55,57 @@ class _ChatScreenV2State extends State<ChatScreenV2> {
         );
       }
     });
+  }
+
+  Future<void> _toggleVoiceInput(ChatProvider chatProvider) async {
+    if (_isListening) {
+      // Stop listening
+      await _speech.stop();
+      setState(() => _isListening = false);
+    } else {
+      // Start listening
+      bool available = await _speech.initialize(
+        onStatus: (status) {
+          if (status == 'done' || status == 'notListening') {
+            setState(() => _isListening = false);
+          }
+        },
+        onError: (error) {
+          setState(() => _isListening = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Voice input error: $error')),
+          );
+        },
+      );
+
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult: (result) {
+            setState(() {
+              _voiceText = result.recognizedWords;
+              _messageController.text = _voiceText;
+            });
+
+            // If user pauses, send the message
+            if (result.finalResult) {
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (_messageController.text.isNotEmpty) {
+                  _sendMessage(chatProvider);
+                }
+              });
+            }
+          },
+          listenMode: stt.ListenMode.confirmation,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Voice input not available on this device'),
+          ),
+        );
+      }
+    }
   }
 
   void _showApiKeyDialog(BuildContext context, ChatProvider chatProvider) {
@@ -301,7 +364,23 @@ class _ChatScreenV2State extends State<ChatScreenV2> {
                         textInputAction: TextInputAction.send,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
+                    // Microphone button
+                    FloatingActionButton(
+                      mini: true,
+                      backgroundColor: _isListening
+                          ? const Color(0xFFF44336)
+                          : const Color(0xFF00D4FF),
+                      onPressed: chatProvider.hasApiKey
+                          ? () => _toggleVoiceInput(chatProvider)
+                          : null,
+                      child: Icon(
+                        _isListening ? Icons.stop : Icons.mic,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Send button
                     FloatingActionButton(
                       mini: true,
                       onPressed: chatProvider.hasApiKey &&
