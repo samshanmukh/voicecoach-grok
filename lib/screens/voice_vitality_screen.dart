@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../models/voice_analysis_models.dart';
 import '../services/voice_recording_service.dart';
 import '../services/voice_analysis_service.dart';
@@ -19,6 +20,7 @@ class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
   final VoiceRecordingService _recordingService = VoiceRecordingService();
   final VoiceAnalysisService _analysisService = VoiceAnalysisService();
   final TTSService _tts = TTSService();
+  late stt.SpeechToText _speech;
 
   bool _isRecording = false;
   bool _isAnalyzing = false;
@@ -27,10 +29,12 @@ class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
   VoiceAnalysisResult? _lastResult;
   String? _error;
   bool _isTTSEnabled = true;
+  String _transcribedText = '';
 
   @override
   void initState() {
     super.initState();
+    _speech = stt.SpeechToText();
     _initialize();
   }
 
@@ -40,6 +44,7 @@ class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
 
     try {
       await _recordingService.initialize();
+      await _speech.initialize();
     } catch (e) {
       setState(() {
         _error = 'Microphone permission required';
@@ -58,9 +63,20 @@ class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
       setState(() {
         _error = null;
         _recordingSeconds = 0;
+        _transcribedText = '';
       });
 
       await _recordingService.startRecording();
+
+      // Start speech-to-text
+      _speech.listen(
+        onResult: (result) {
+          setState(() {
+            _transcribedText = result.recognizedWords;
+          });
+        },
+        listenFor: const Duration(seconds: 5),
+      );
 
       setState(() => _isRecording = true);
 
@@ -88,6 +104,9 @@ class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
     _recordingTimer?.cancel();
     _recordingTimer = null;
 
+    // Stop speech recognition
+    await _speech.stop();
+
     setState(() {
       _isRecording = false;
       _isAnalyzing = true;
@@ -100,15 +119,44 @@ class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
         throw Exception('Failed to save recording');
       }
 
-      // Analyze with Grok
-      // Note: Since Grok doesn't support audio directly, we'll prompt for feeling
-      await _showFeelingDialog();
+      // Analyze the transcribed text with Grok
+      if (_transcribedText.isEmpty) {
+        _transcribedText = 'User was silent or speech not detected';
+      }
+
+      await _analyzeVoice(_transcribedText);
     } catch (e) {
       setState(() {
         _error = 'Analysis failed: $e';
         _isAnalyzing = false;
       });
       print('Stop recording error: $e');
+    }
+  }
+
+  Future<void> _analyzeVoice(String transcription) async {
+    try {
+      final result = await _analysisService.analyzeVoice(
+        userDescription: 'User said: "$transcription" after their workout',
+        workoutContext: 'Just completed a workout session. Analyze their voice vitality and energy level based on what they said.',
+      );
+
+      setState(() {
+        _lastResult = result;
+        _isAnalyzing = false;
+        _error = null;
+      });
+
+      // Read feedback aloud if TTS is enabled
+      if (_isTTSEnabled && mounted) {
+        await _tts.speak(result.feedback);
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Analysis failed: $e';
+        _isAnalyzing = false;
+      });
+      print('Analysis error: $e');
     }
   }
 
