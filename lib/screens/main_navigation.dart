@@ -21,6 +21,8 @@ class _MainNavigationState extends State<MainNavigation> {
     DashboardScreen(),
     FindBuddiesScreen(),
     TrackWorkoutScreen(),
+    ChatScreenV2(),
+    VoiceVitalityScreen(),
   ];
 
   @override
@@ -58,6 +60,16 @@ class _MainNavigationState extends State<MainNavigation> {
                   icon: Icons.fitness_center_rounded,
                   label: 'Track',
                   index: 2,
+                ),
+                _buildNavItem(
+                  icon: Icons.chat_bubble_rounded,
+                  label: 'Chat',
+                  index: 3,
+                ),
+                _buildNavItem(
+                  icon: Icons.mic_rounded,
+                  label: 'Vitality',
+                  index: 4,
                 ),
               ],
             ),
