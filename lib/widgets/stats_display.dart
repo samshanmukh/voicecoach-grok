@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/workout_provider.dart';
+import 'glass_card.dart';
+import 'circular_score_indicator.dart';
 
 class StatsDisplay extends StatelessWidget {
   final WorkoutProvider provider;
@@ -14,14 +17,25 @@ class StatsDisplay extends StatelessWidget {
     final history = provider.sessionHistory;
 
     if (history.isEmpty) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Waiting for voice analysis...',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
+      return GlassCard(
+        child: Column(
+          children: [
+            Icon(
+              Icons.analytics,
+              size: 48,
+              color: Colors.grey.shade400,
+            ).animate(onPlay: (controller) => controller.repeat())
+                .shimmer(duration: 2000.ms),
+            const SizedBox(height: 12),
+            Text(
+              'Waiting for voice analysis...',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 14,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -50,102 +64,95 @@ class StatsDisplay extends StatelessWidget {
         ? injuryScores.reduce((a, b) => a + b) / injuryScores.length
         : 0.0;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.analytics, size: 24),
-                SizedBox(width: 8),
-                Text(
+    return GlassCard(
+      gradientColors: [
+        Colors.blue.withOpacity(0.15),
+        Colors.cyan.withOpacity(0.1),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.blue.withOpacity(0.3),
+                      Colors.cyan.withOpacity(0.2),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.analytics, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
                   'Session Statistics',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (postureScores.isNotEmpty)
-              _buildStatRow(
-                'Average Posture',
-                avgPosture,
-                Icons.accessibility_new,
               ),
-            if (fatigueScores.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _buildStatRow(
-                'Average Fatigue',
-                avgFatigue,
-                Icons.battery_alert,
-              ),
-            ],
-            if (injuryScores.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _buildStatRow(
-                'Average Injury Risk',
-                avgInjuryRisk,
-                Icons.warning,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${history.length} analyses',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade300,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ],
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 8),
-            Text(
-              'Total Analyses: ${history.length}',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 24),
+
+          // Circular indicators
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              if (postureScores.isNotEmpty)
+                Expanded(
+                  child: CircularScoreIndicator(
+                    score: avgPosture.round(),
+                    label: 'Avg Posture',
+                    icon: Icons.accessibility_new,
+                    size: 90,
+                  ).animate().fadeIn(delay: 100.ms).scale(),
+                ),
+              if (fatigueScores.isNotEmpty)
+                Expanded(
+                  child: CircularScoreIndicator(
+                    score: avgFatigue.round(),
+                    label: 'Avg Fatigue',
+                    icon: Icons.battery_alert,
+                    size: 90,
+                  ).animate().fadeIn(delay: 200.ms).scale(),
+                ),
+              if (injuryScores.isNotEmpty)
+                Expanded(
+                  child: CircularScoreIndicator(
+                    score: avgInjuryRisk.round(),
+                    label: 'Avg Risk',
+                    icon: Icons.warning,
+                    size: 90,
+                  ).animate().fadeIn(delay: 300.ms).scale(),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildStatRow(String label, double score, IconData icon) {
-    final color = _getColorForScore(score.round());
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 14),
-            ),
-            const Spacer(),
-            Text(
-              '${score.round()}/100',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: score / 100,
-          backgroundColor: Colors.grey.withOpacity(0.2),
-          color: color,
-        ),
-      ],
-    );
-  }
-
-  Color _getColorForScore(int score) {
-    if (score >= 80) return Colors.green;
-    if (score >= 60) return Colors.orange;
-    return Colors.red;
-  }
 }

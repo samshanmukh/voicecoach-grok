@@ -1,10 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'providers/workout_provider.dart';
 import 'screens/splash_screen.dart';
+import 'providers/chat_provider.dart';
+import 'providers/leaderboard_provider.dart';
+import 'providers/gamification_provider.dart';
+import 'screens/main_navigation.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase (optional - app works without it)
+  try {
+    await Firebase.initializeApp();
+    print('✅ Firebase initialized successfully');
+  } catch (e) {
+    print('⚠️ Firebase not configured - app will work without leaderboard features');
+    print('Error: $e');
+  }
+
   runApp(const VoiceCoachApp());
 }
 
@@ -13,8 +29,13 @@ class VoiceCoachApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => WorkoutProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => WorkoutProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => LeaderboardProvider()),
+        ChangeNotifierProvider(create: (_) => GamificationProvider()),
+      ],
       child: MaterialApp(
         title: 'VoiceCoach by Grok',
         debugShowCheckedModeBanner: false,
@@ -37,7 +58,6 @@ class VoiceCoachApp extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
             ),
           ),
-          textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
         ),
         home: const SplashScreen(),
       ),

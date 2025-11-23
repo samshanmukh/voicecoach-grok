@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'find_buddies_screen.dart';
 import 'track_workout_screen.dart';
+import 'chat_screen_v2.dart';
+import 'workouts_screen.dart';
+import 'leaderboard_screen.dart';
+import 'voice_vitality_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
