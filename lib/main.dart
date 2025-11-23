@@ -20,9 +20,22 @@ class VoiceCoachApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple,
-            brightness: Brightness.dark,
+          colorScheme: ColorScheme.dark(
+            primary: const Color(0xFFC8FF00), // Lime green
+            secondary: const Color(0xFFC8FF00),
+            surface: const Color(0xFF1A1A1A), // Dark background
+            background: const Color(0xFF0F0F0F), // Darker background
+            onPrimary: Colors.black,
+            onSecondary: Colors.black,
+            onSurface: Colors.white,
+          ),
+          scaffoldBackgroundColor: const Color(0xFF0F0F0F),
+          cardTheme: CardTheme(
+            color: const Color(0xFF2A2A2A),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
           ),
           textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
         ),

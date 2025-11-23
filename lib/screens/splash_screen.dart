@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'home_screen.dart';
+import 'main_navigation.dart';
 
 /// Splash Screen with Grok robot animation
 /// Features:
@@ -21,12 +21,12 @@ class _SplashScreenState extends State<SplashScreen> {
     _navigateToHome();
   }
 
-  /// Navigate to home screen after 3 seconds
+  /// Navigate to main navigation screen after 3 seconds
   Future<void> _navigateToHome() async {
     await Future.delayed(const Duration(seconds: 3));
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
       );
     }
   }
