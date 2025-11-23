@@ -1,11 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../widgets/glass_card.dart';
+import '../models/voice_analysis_models.dart';
+import '../services/voice_recording_service.dart';
+import '../services/voice_analysis_service.dart';
 import '../services/tts_service.dart';
+import '../widgets/glass_card.dart';
 
-/// Voice Vitality Tab: After workout, record five-second voice clip
-/// "How'd that feel?" Grok guesses if you're tired, dehydrated, or pumped
-/// Responds funny like "Sam, you're croaking-drink water or I'll roast you harder next set"
+/// Voice Vitality Tab: Post-workout voice analysis with Grok
 class VoiceVitalityScreen extends StatefulWidget {
   const VoiceVitalityScreen({super.key});
 
@@ -14,57 +16,234 @@ class VoiceVitalityScreen extends StatefulWidget {
 }
 
 class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
+  final VoiceRecordingService _recordingService = VoiceRecordingService();
+  final VoiceAnalysisService _analysisService = VoiceAnalysisService();
   final TTSService _tts = TTSService();
+
   bool _isRecording = false;
   bool _isAnalyzing = false;
-  VitalityResult? _lastResult;
+  int _recordingSeconds = 0;
+  Timer? _recordingTimer;
+  VoiceAnalysisResult? _lastResult;
+  String? _error;
+  bool _isTTSEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    _tts.initialize();
+    _initialize();
   }
 
-  void _startRecording() {
-    setState(() => _isRecording = true);
+  Future<void> _initialize() async {
+    await _tts.initialize();
+    await _analysisService.initialize();
 
-    // TODO: Phase 5 - Record 5 seconds of audio
-    Future.delayed(const Duration(seconds: 5), () {
+    try {
+      await _recordingService.initialize();
+    } catch (e) {
       setState(() {
-        _isRecording = false;
-        _isAnalyzing = true;
+        _error = 'Microphone permission required';
+      });
+      print('Recording service init error: $e');
+    }
+  }
+
+  Future<void> _startRecording() async {
+    if (!_analysisService.hasApiKey) {
+      _showApiKeyDialog();
+      return;
+    }
+
+    try {
+      setState(() {
+        _error = null;
+        _recordingSeconds = 0;
       });
 
-      // Simulate Grok analysis
-      _simulateAnalysis();
-    });
+      await _recordingService.startRecording();
+
+      setState(() => _isRecording = true);
+
+      // Start countdown timer
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          _recordingSeconds++;
+        });
+
+        // Auto-stop after 5 seconds
+        if (_recordingSeconds >= 5) {
+          _stopRecording();
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to start recording: $e';
+        _isRecording = false;
+      });
+      print('Recording error: $e');
+    }
   }
 
-  void _simulateAnalysis() {
-    // Simulate API delay
-    Future.delayed(const Duration(seconds: 2), () {
-      final result = VitalityResult(
-        status: 'Pumped',
-        confidence: 85,
-        feedback: "Yo, you sound FIRED UP! That's what I'm talking about! "
-            "Let's keep that energy rolling. Your voice is strong - "
-            "no croaking here. Water game is on point. Beast mode activated! 💪",
-        recommendations: [
-          'Keep hydration levels up',
-          'Great energy - maintain this intensity',
-          'Perfect recovery indicators',
-        ],
-        timestamp: DateTime.now(),
+  Future<void> _stopRecording() async {
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+
+    setState(() {
+      _isRecording = false;
+      _isAnalyzing = true;
+    });
+
+    try {
+      final recording = await _recordingService.stopRecording();
+
+      if (recording == null) {
+        throw Exception('Failed to save recording');
+      }
+
+      // Analyze with Grok
+      // Note: Since Grok doesn't support audio directly, we'll prompt for feeling
+      await _showFeelingDialog();
+    } catch (e) {
+      setState(() {
+        _error = 'Analysis failed: $e';
+        _isAnalyzing = false;
+      });
+      print('Stop recording error: $e');
+    }
+  }
+
+  Future<void> _showFeelingDialog() async {
+    final feelings = [
+      'Pumped and energized!',
+      'Pretty good, normal',
+      'A bit tired',
+      'Very exhausted',
+      'Thirsty/dehydrated',
+    ];
+
+    final selected = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('How do you feel?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Select how you\'re feeling after your workout:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            ...feelings.map((feeling) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, feeling),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                  child: Text(feeling),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+
+    if (selected != null && mounted) {
+      await _analyzeFeeling(selected);
+    } else {
+      setState(() => _isAnalyzing = false);
+    }
+  }
+
+  Future<void> _analyzeFeeling(String feeling) async {
+    try {
+      final result = await _analysisService.analyzeVoice(
+        userDescription: feeling,
+        workoutContext: 'Just completed a workout session',
       );
 
       setState(() {
         _lastResult = result;
         _isAnalyzing = false;
+        _error = null;
       });
 
-      // Read the feedback aloud
-      _tts.speak(result.feedback);
-    });
+      // Read feedback aloud if TTS is enabled
+      if (_isTTSEnabled && mounted) {
+        await _tts.speak(result.feedback);
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Analysis failed: $e';
+        _isAnalyzing = false;
+      });
+      print('Analysis error: $e');
+    }
+  }
+
+  void _showApiKeyDialog() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('xAI API Key Required'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter your xAI API key to analyze with Grok:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'xai-...',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Get your key at: https://console.x.ai',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade400,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final key = controller.text.trim();
+              if (key.isNotEmpty) {
+                await _analysisService.saveApiKey(key);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('API key saved!'),
+                      backgroundColor: Color(0xFF4CAF50),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -73,19 +252,29 @@ class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
       appBar: AppBar(
         title: const Text('Voice Vitality'),
         actions: [
+          // TTS toggle
+          IconButton(
+            icon: Icon(
+              _isTTSEnabled ? Icons.volume_up : Icons.volume_off,
+            ),
+            onPressed: () {
+              setState(() => _isTTSEnabled = !_isTTSEnabled);
+              if (!_isTTSEnabled) {
+                _tts.stop();
+              }
+            },
+            tooltip: _isTTSEnabled ? 'Disable voice' : 'Enable voice',
+          ),
+          // Re-read button
           if (_lastResult != null)
             IconButton(
-              icon: Icon(
-                _tts.isSpeaking ? Icons.volume_up : Icons.volume_off,
-              ),
+              icon: const Icon(Icons.replay),
               onPressed: () {
-                if (_tts.isSpeaking) {
-                  _tts.stop();
-                } else if (_lastResult != null) {
+                if (_isTTSEnabled) {
                   _tts.speak(_lastResult!.feedback);
                 }
               },
-              tooltip: 'Toggle voice',
+              tooltip: 'Replay feedback',
             ),
         ],
       ),
@@ -93,106 +282,33 @@ class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Recording button
-            GlassCard(
-              gradientColors: [
-                const Color(0xFFFF9800).withOpacity(0.15),
-                const Color(0xFFFF9800).withOpacity(0.05),
-              ],
-              child: Column(
-                children: [
-                  if (!_isRecording && !_isAnalyzing) ...[
-                    const Icon(
-                      Icons.graphic_eq,
-                      size: 80,
-                      color: Color(0xFFFF9800),
-                    ).animate(onPlay: (controller) => controller.repeat())
-                        .shimmer(duration: 2000.ms),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'How\'d that workout feel?',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tap to record a 5-second voice clip',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey.shade400,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: _startRecording,
-                      icon: const Icon(Icons.mic),
-                      label: const Text('Start Recording'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF9800),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                      ),
-                    ),
-                  ],
+            // Recording UI
+            _buildRecordingCard(),
 
-                  if (_isRecording) ...[
-                    const Icon(
-                      Icons.mic,
-                      size: 80,
-                      color: Colors.red,
-                    ).animate(onPlay: (controller) => controller.repeat())
-                        .shimmer(duration: 500.ms)
-                        .scale(duration: 500.ms, begin: const Offset(0.9, 0.9)),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Recording...',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Speak naturally about how you feel',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ],
-
-                  if (_isAnalyzing) ...[
-                    const SizedBox(
-                      width: 80,
-                      height: 80,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 4,
-                        color: Color(0xFFFF9800),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Analyzing...',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Grok is checking your vitals',
-                      style: TextStyle(
-                        color: Colors.grey.shade400,
-                        fontSize: 14,
+            // Error display
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error, color: Colors.red),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red),
                       ),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
+            ],
 
             // Results
             if (_lastResult != null) ...[
@@ -205,7 +321,136 @@ class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
     );
   }
 
-  Widget _buildResultCard(VitalityResult result) {
+  Widget _buildRecordingCard() {
+    return GlassCard(
+      gradientColors: [
+        const Color(0xFFFF9800).withOpacity(0.15),
+        const Color(0xFFFF9800).withOpacity(0.05),
+      ],
+      child: Column(
+        children: [
+          if (!_isRecording && !_isAnalyzing) ...[
+            const Icon(
+              Icons.graphic_eq,
+              size: 80,
+              color: Color(0xFFFF9800),
+            ).animate(onPlay: (controller) => controller.repeat())
+                .shimmer(duration: 2000.ms),
+            const SizedBox(height: 16),
+            const Text(
+              'How\'d that workout feel?',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Record a 5-second voice clip\nGrok will analyze your vitality',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _startRecording,
+              icon: const Icon(Icons.mic),
+              label: const Text('Start Recording'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF9800),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+            ),
+          ],
+
+          if (_isRecording) ...[
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 120,
+                  height: 120,
+                  child: CircularProgressIndicator(
+                    value: _recordingSeconds / 5,
+                    strokeWidth: 8,
+                    color: Colors.red,
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+                Column(
+                  children: [
+                    const Icon(
+                      Icons.mic,
+                      size: 48,
+                      color: Colors.red,
+                    ).animate(onPlay: (controller) => controller.repeat())
+                        .scale(duration: 500.ms, begin: const Offset(0.9, 0.9)),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$_recordingSeconds/5',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Recording...',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Speak naturally about how you feel',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+
+          if (_isAnalyzing) ...[
+            const SizedBox(
+              width: 80,
+              height: 80,
+              child: CircularProgressIndicator(
+                strokeWidth: 4,
+                color: Color(0xFFFF9800),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Analyzing with Grok...',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Checking your vitality',
+              style: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultCard(VoiceAnalysisResult result) {
     final statusColor = _getStatusColor(result.status);
 
     return GlassCard(
@@ -376,23 +621,9 @@ class _VoiceVitalityScreenState extends State<VoiceVitalityScreen> {
 
   @override
   void dispose() {
+    _recordingTimer?.cancel();
+    _recordingService.dispose();
     _tts.stop();
     super.dispose();
   }
-}
-
-class VitalityResult {
-  final String status; // e.g., "Pumped", "Tired", "Dehydrated"
-  final int confidence; // 0-100
-  final String feedback; // Grok's sarcastic response
-  final List<String> recommendations;
-  final DateTime timestamp;
-
-  VitalityResult({
-    required this.status,
-    required this.confidence,
-    required this.feedback,
-    required this.recommendations,
-    required this.timestamp,
-  });
 }
