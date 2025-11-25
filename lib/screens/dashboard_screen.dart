@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/buddy.dart';
+import 'workouts_screen.dart';
+import 'achievements_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final Function(int)? onTabChange;
+
+  const DashboardScreen({super.key, this.onTabChange});
 
   @override
   Widget build(BuildContext context) {
@@ -56,12 +61,22 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.notifications_outlined, color: Color(0xFFC8FF00)),
-                      onPressed: () {},
+                      icon: const Icon(Icons.settings_outlined, color: Color(0xFFC8FF00)),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                        );
+                      },
                     ),
                     IconButton(
                       icon: const Icon(Icons.local_fire_department, color: Color(0xFFC8FF00)),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const WorkoutsScreen()),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -72,7 +87,11 @@ class DashboardScreen extends StatelessWidget {
                   context,
                   title: 'Find Buddies',
                   icon: Icons.people,
-                  onTap: () {},
+                  onTap: () {
+                    if (onTabChange != null) {
+                      onTabChange!(1); // Switch to Buddies tab
+                    }
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -84,7 +103,11 @@ class DashboardScreen extends StatelessWidget {
                         context,
                         title: 'Track\nWorkouts',
                         icon: Icons.bar_chart,
-                        onTap: () {},
+                        onTap: () {
+                          if (onTabChange != null) {
+                            onTabChange!(2); // Switch to Track tab
+                          }
+                        },
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -93,7 +116,12 @@ class DashboardScreen extends StatelessWidget {
                         context,
                         title: 'Goals',
                         icon: Icons.emoji_events,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const AchievementsScreen()),
+                          );
+                        },
                       ),
                     ),
                   ],

@@ -1,21 +1,110 @@
 import 'package:flutter/material.dart';
 import '../models/buddy.dart';
 
-class FindBuddiesScreen extends StatelessWidget {
+class FindBuddiesScreen extends StatefulWidget {
   const FindBuddiesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final buddies = Buddy.getDummyBuddies();
+  State<FindBuddiesScreen> createState() => _FindBuddiesScreenState();
+}
 
+class _FindBuddiesScreenState extends State<FindBuddiesScreen> {
+  List<Buddy> _allBuddies = [];
+  List<Buddy> _filteredBuddies = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedFilter = 'All';
+  final Set<String> _addedBuddies = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _allBuddies = Buddy.getDummyBuddies();
+    _filteredBuddies = _allBuddies;
+    _searchController.addListener(_filterBuddies);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterBuddies() {
+    setState(() {
+      _filteredBuddies = _allBuddies.where((buddy) {
+        // Search filter
+        final searchMatch = buddy.name.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+            buddy.username.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+            buddy.location.toLowerCase().contains(_searchController.text.toLowerCase());
+
+        // Category filter
+        final categoryMatch = _selectedFilter == 'All' || buddy.tags.contains(_selectedFilter);
+
+        return searchMatch && categoryMatch;
+      }).toList();
+    });
+  }
+
+  void _showFilterDialog() {
+    final allTags = <String>{'All'};
+    for (var buddy in _allBuddies) {
+      allTags.addAll(buddy.tags);
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        title: const Text('Filter by Interest', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: allTags.map((tag) => RadioListTile<String>(
+            title: Text(tag, style: const TextStyle(color: Colors.white)),
+            value: tag,
+            groupValue: _selectedFilter,
+            activeColor: const Color(0xFFC8FF00),
+            onChanged: (value) {
+              setState(() => _selectedFilter = value!);
+              Navigator.pop(context);
+              _filterBuddies();
+            },
+          )).toList(),
+        ),
+      ),
+    );
+  }
+
+  void _toggleBuddy(String username) {
+    setState(() {
+      if (_addedBuddies.contains(username)) {
+        _addedBuddies.remove(username);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Removed $username from buddies'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        _addedBuddies.add(username);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added $username as buddy!'),
+            backgroundColor: const Color(0xFFC8FF00),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {},
-        ),
+        automaticallyImplyLeading: false,
         title: const Text(
           'Find Buddies',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -23,17 +112,35 @@ class FindBuddiesScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.tune, color: Color(0xFFC8FF00)),
-            onPressed: () {},
+            onPressed: _showFilterDialog,
           ),
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Search bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2A),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    icon: Icon(Icons.search, color: Color(0xFFC8FF00)),
+                    hintText: 'Search buddies...',
+                    hintStyle: TextStyle(color: Colors.grey),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
                 // Map exploration card
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -80,21 +187,51 @@ class FindBuddiesScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Near-by Buddies section
-                const Text(
-                  'Near-by Buddies',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+              // Filter indicator
+              if (_selectedFilter != 'All')
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Chip(
+                    label: Text('Filter: $_selectedFilter'),
+                    deleteIcon: const Icon(Icons.close, size: 18),
+                    onDeleted: () {
+                      setState(() => _selectedFilter = 'All');
+                      _filterBuddies();
+                    },
+                    backgroundColor: const Color(0xFFC8FF00),
+                    labelStyle: const TextStyle(color: Colors.black),
                   ),
                 ),
-                const SizedBox(height: 16),
 
-                // Buddies list
-                ...buddies.map((buddy) => _buildBuddyCard(context, buddy)),
-              ],
-            ),
+              // Near-by Buddies section
+              Text(
+                'Near-by Buddies (${_filteredBuddies.length})',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Buddies list
+              Expanded(
+                child: _filteredBuddies.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No buddies found.\nTry adjusting your filters.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _filteredBuddies.length,
+                        itemBuilder: (context, index) {
+                          return _buildBuddyCard(context, _filteredBuddies[index]);
+                        },
+                      ),
+              ),
+            ],
           ),
         ),
       ),
@@ -172,13 +309,24 @@ class FindBuddiesScreen extends StatelessWidget {
           ),
 
           // Action button
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFC8FF00),
-              shape: BoxShape.circle,
+          GestureDetector(
+            onTap: () => _toggleBuddy(buddy.username),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _addedBuddies.contains(buddy.username)
+                    ? Colors.green
+                    : const Color(0xFFC8FF00),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _addedBuddies.contains(buddy.username)
+                    ? Icons.check
+                    : Icons.person_add,
+                color: Colors.black,
+                size: 20,
+              ),
             ),
-            child: const Icon(Icons.person_add, color: Colors.black, size: 20),
           ),
         ],
       ),

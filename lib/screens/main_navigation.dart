@@ -17,12 +17,16 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _screens = [
-    DashboardScreen(),
-    FindBuddiesScreen(),
-    TrackWorkoutScreen(),
-    ChatScreenV2(),
-    VoiceVitalityScreen(),
+  void _onTabChange(int index) {
+    setState(() => _selectedIndex = index);
+  }
+
+  List<Widget> get _screens => [
+    DashboardScreen(onTabChange: _onTabChange),
+    const FindBuddiesScreen(),
+    const TrackWorkoutScreen(),
+    const ChatScreenV2(),
+    const VoiceVitalityScreen(),
   ];
 
   @override
